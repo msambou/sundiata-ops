@@ -7,6 +7,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+personal.md
 
 ############################################
 # Python (microservices)
