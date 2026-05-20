@@ -8,7 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Status
 
-The repository currently contains documentation and configuration skeletons. No build commands, test suites, or CI/CD pipelines exist yet. When implementation begins, services will be Python (FastAPI) microservices.
+| Layer | Status |
+|---|---|
+| `infrastructure/` | Complete — Terraform provisions AKS (Standard_D8s_v3 × 2, Kubernetes 1.35), ACR, resource group, and AcrPull role assignment. Region: West US 2. |
+| `gitops/` | Planned — FluxCD bootstrap next |
+| `platform/` | Planned — NATS, Kong, Ollama, Prometheus/Grafana/Loki |
+| `services/` | Planned — FastAPI microservices |
+| `helm/` | Planned |
+| CI/CD | Planned — Tekton pipelines |
+
+Services will be Python (FastAPI) microservices. No build commands or test suites exist yet.
 
 ## Architecture
 
@@ -114,6 +123,10 @@ Topics follow the pattern `incident.<lifecycle-stage>`:
 | `incident.resolved` | `remediation-agent` | `postmortem-agent` |
 
 Services MUST NOT call each other directly over HTTP — all inter-service communication goes through NATS.
+
+## Versioning Policy
+
+Always use the latest stable versions of all tools, libraries, and platforms (Kubernetes, Terraform providers, Python packages, Helm charts, etc.). Before specifying any version, verify the current stable release. Never pin to an outdated version without an explicit reason from the user.
 
 ## Key Design Decisions
 
