@@ -1,0 +1,131 @@
+############################################
+# OS / Editor
+############################################
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+############################################
+# Python (microservices)
+############################################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.env
+.venv/
+venv/
+pip-wheel-metadata/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+############################################
+# Node (if any tooling/scripts use it)
+############################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+############################################
+# Environment files
+############################################
+.env
+.env.*
+!.env.example
+
+############################################
+# Terraform
+############################################
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+############################################
+# Kubernetes / Helm / FluxCD
+############################################
+*.kubeconfig
+.kube/
+*.k8s.*
+helm/charts/*.tgz
+
+# Avoid committing rendered manifests (optional)
+*.rendered.yaml
+
+############################################
+# Logs
+############################################
+*.log
+logs/
+log/
+
+############################################
+# Local development tools
+############################################
+docker-compose.override.yml
+
+############################################
+# Docker
+############################################
+.docker/
+*.pid
+
+############################################
+# Secrets (IMPORTANT)
+############################################
+secrets/
+*.pem
+*.key
+*.crt
+*.pfx
+
+############################################
+# Ollama / LLM local artifacts
+############################################
+ollama-data/
+models/
+*.gguf
+*.bin
+
+############################################
+# Coverage / testing
+############################################
+coverage/
+htmlcov/
+.coverage
+
+############################################
+# IDE + formatting tools
+############################################
+.ruff_cache/
+.isort_cache/
+
+############################################
+# FluxCD / Tekton local outputs
+############################################
+*.out
+tekton-results/
+flux-system.local/
+
+############################################
+# Misc
+############################################
+.DS_Store
