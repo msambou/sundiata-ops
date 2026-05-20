@@ -10,14 +10,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Layer | Status |
 |---|---|
-| `infrastructure/` | Complete — Terraform provisions AKS (Standard_D8s_v3 × 2, Kubernetes 1.35), ACR, resource group, and AcrPull role assignment. Region: West US 2. |
-| `gitops/` | Planned — FluxCD bootstrap next |
-| `platform/` | Planned — NATS, Kong, Ollama, Prometheus/Grafana/Loki |
+| `infrastructure/` | Complete — Terraform provisions AKS (Standard_D8s_v3 × 2, Kubernetes 1.35), ACR, resource group, AcrPull role assignment, and FluxCD bootstrap. Region: West US 2. |
+| `gitops/` | Next — scaffold Flux layer structure, then platform Helm releases |
+| `platform/` | Planned — NATS, Kong, Ollama, Prometheus/Grafana/Loki as Flux-managed Helm releases |
 | `services/` | Planned — FastAPI microservices |
 | `helm/` | Planned |
 | CI/CD | Planned — Tekton pipelines |
 
 Services will be Python (FastAPI) microservices. No build commands or test suites exist yet.
+
+### Infrastructure Details
+
+- **Terraform files:** `infrastructure/` — `providers.tf`, `variables.tf`, `main.tf`, `outputs.tf`, `flux.tf`
+- **AKS cluster:** `cloudnative-ops-aks`, resource group `cloudnative-ops-rg`, West US 2
+- **Node pool:** `Standard_D8s_v3 × 2` (system workloads + Ollama CPU inference)
+- **ACR:** `cloudnativeopsacr`
+- **FluxCD:** bootstrapped via `fluxcd/flux` Terraform provider; watches the `gitops/` path on `main`
+- **GitHub owner:** `msambou` — only CODEOWNER (`.github/CODEOWNERS`)
+- **Secret handling:** `github_token` is never stored in `.tfvars` — passed via `TF_VAR_github_token` env var at apply time
+
+### GitOps Layer (next session)
+
+Scaffold `gitops/` with this structure, then populate platform Helm releases:
+
+```
+gitops/
+├── flux-system/          # Auto-populated by Flux bootstrap — do not edit manually
+├── infrastructure/       # Platform Helm releases (NATS, Kong, Ollama, monitoring)
+│   ├── sources/          # HelmRepository CRDs
+│   └── releases/         # HelmRelease manifests
+└── apps/                 # Microservice deployments
+    ├── incident-api/
+    ├── triage-agent/
+    ├── rca-agent/
+    ├── remediation-agent/
+    ├── notification-agent/
+    └── postmortem-agent/
+```
+
+Flux reconciles `infrastructure/` before `apps/` — platform dependencies (NATS, Kong) are always up before services start.
 
 ## Architecture
 
