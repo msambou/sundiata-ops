@@ -40,3 +40,19 @@ variable "acr_name" {
   type        = string
   description = "Azure Container Registry name — must be globally unique, alphanumeric only"
 }
+
+variable "github_owner" {
+  type        = string
+  description = "GitHub username or organisation that owns the repository"
+}
+
+variable "github_repository" {
+  type        = string
+  description = "GitHub repository name (must already exist)"
+}
+
+variable "github_token" {
+  type        = string
+  description = "GitHub Personal Access Token with repo scope — used by Flux to push flux-system manifests"
+  sensitive   = true
+}
