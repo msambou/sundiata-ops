@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nats
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nats
+  namespace: flux-system
+spec:
+  interval: 10m
+  targetNamespace: nats
+  storageNamespace: nats
+  dependsOn:
+    - name: kube-prometheus-stack
+      namespace: flux-system
+  chart:
+    spec:
+      chart: nats
+      version: "2.14.0"
+      sourceRef:
+        kind: HelmRepository
+        name: nats
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    config:
+      jetstream:
+        enabled: true
+        fileStore:
+          pvc:
+            size: 10Gi
+      cluster:
+        enabled: false
+
+    container:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+
+    promExporter:
+      enabled: true
+      port: 7777
+
+    service:
+      enabled: true
+      ports:
+        client:
+          enabled: true
+        monitor:
+          enabled: true
