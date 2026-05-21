@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kong
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kong
+  namespace: flux-system
+spec:
+  interval: 10m
+  targetNamespace: kong
+  storageNamespace: kong
+  dependsOn:
+    - name: kube-prometheus-stack
+      namespace: flux-system
+  chart:
+    spec:
+      chart: kong
+      version: "3.2.0"
+      sourceRef:
+        kind: HelmRepository
+        name: kong
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    env:
+      database: "off"
+      nginx_worker_processes: "2"
+      proxy_access_log: /dev/stdout
+      admin_access_log: /dev/stdout
+      proxy_error_log: /dev/stderr
+      admin_error_log: /dev/stderr
+
+    proxy:
+      enabled: true
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-resource-group: "cloudnative-ops-rg"
+
+    admin:
+      enabled: true
+      type: ClusterIP
+      http:
+        enabled: true
+        servicePort: 8001
+
+    manager:
+      enabled: false
+
+    portal:
+      enabled: false
+
+    portalapi:
+      enabled: false
+
+    ingressController:
+      enabled: false
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+
+    serviceMonitor:
+      enabled: true
+      labels:
+        release: kube-prometheus-stack

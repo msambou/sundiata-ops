@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ollama
+  namespace: flux-system
+spec:
+  interval: 10m
+  targetNamespace: platform
+  storageNamespace: platform
+  dependsOn:
+    - name: kube-prometheus-stack
+      namespace: flux-system
+    - name: nats
+      namespace: flux-system
+  chart:
+    spec:
+      chart: ollama
+      version: "1.56.0"
+      sourceRef:
+        kind: HelmRepository
+        name: ollama-helm
+        namespace: flux-system
+      interval: 12h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    ollama:
+      gpu:
+        enabled: false
+      models:
+        pull:
+          - llama3
+          - nomic-embed-text
+
+    persistentVolume:
+      enabled: true
+      size: 30Gi
+      storageClass: ""
+
+    service:
+      type: ClusterIP
+      port: 11434
+
+    resources:
+      requests:
+        cpu: 2000m
+        memory: 8Gi
+      limits:
+        cpu: 6000m
+        memory: 24Gi
+
+    livenessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 30
+
+    readinessProbe:
+      initialDelaySeconds: 120
+      periodSeconds: 30
