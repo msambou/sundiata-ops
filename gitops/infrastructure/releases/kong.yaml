@@ -72,13 +72,12 @@ spec:
         cpu: 1000m
         memory: 1Gi
 
+    # Minimal valid declarative config — Kong requires this to report ready in DB-less mode
+    dblessConfig:
+      config: |
+        _format_version: "3.0"
+
     serviceMonitor:
       enabled: true
       labels:
         release: kube-prometheus-stack
-
-    readinessProbe:
-      httpGet:
-        path: /status
-        port: 8100
-        scheme: HTTP
