@@ -55,12 +55,29 @@ spec:
     manager:
       enabled: false
 
-    # Kong Ingress Controller — watches Ingress/HTTPRoute resources and
-    # dynamically configures Kong. Each microservice declares its own
-    # route manifest; no static declarative config file required.
     ingressController:
-      enabled: true
-      installCRDs: false
+      enabled: false
+
+    dblessConfig:
+      config: |
+        _format_version: "1.1"
+
+        services:
+          - name: incident-api
+            url: http://incident-api.apps.svc.cluster.local:8000
+            routes:
+              - name: health-route
+                paths:
+                  - /health
+                methods:
+                  - GET
+                strip_path: false
+              - name: incidents-route
+                paths:
+                  - /incidents
+                methods:
+                  - POST
+                strip_path: false
 
     resources:
       requests:

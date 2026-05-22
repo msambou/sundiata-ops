@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "incident-api"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.115.12",
+    "uvicorn[standard]>=0.34.2",
+    "pydantic>=2.11.4",
+    "opentelemetry-sdk>=1.33.1",
+    "opentelemetry-api>=1.33.1",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.33.1",
+    "opentelemetry-instrumentation-fastapi>=0.54b1",
+    "opentelemetry-instrumentation-logging>=0.54b1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "httpx>=0.28.1",
+    "ruff>=0.11.10",
+    "mypy>=1.15.0",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
