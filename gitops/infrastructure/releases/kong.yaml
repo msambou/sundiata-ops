@@ -55,14 +55,12 @@ spec:
     manager:
       enabled: false
 
-    portal:
-      enabled: false
-
-    portalapi:
-      enabled: false
-
+    # Kong Ingress Controller — watches Ingress/HTTPRoute resources and
+    # dynamically configures Kong. Each microservice declares its own
+    # route manifest; no static declarative config file required.
     ingressController:
-      enabled: false
+      enabled: true
+      installCRDs: false
 
     resources:
       requests:
@@ -71,11 +69,6 @@ spec:
       limits:
         cpu: 1000m
         memory: 1Gi
-
-    # Minimal valid declarative config — Kong requires this to report ready in DB-less mode
-    dblessConfig:
-      config: |
-        _format_version: "3.0"
 
     serviceMonitor:
       enabled: true
