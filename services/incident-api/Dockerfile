@@ -1,18 +1,16 @@
-# ── Stage 1: install dependencies ─────────────────────────────────────────────
+# ── Stage 1: install dependencies into a venv ─────────────────────────────────
 FROM python:3.14-slim AS builder
 
-WORKDIR /build
+WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN pip install --upgrade pip hatchling
+RUN pip install --upgrade pip
 
 COPY pyproject.toml .
 COPY src/ ./src/
 
-RUN pip install --prefix=/install .
+RUN python -m venv /venv && \
+    /venv/bin/pip install --upgrade pip && \
+    /venv/bin/pip install .
 
 # ── Stage 2: runtime image ─────────────────────────────────────────────────────
 FROM python:3.14-slim AS runtime
@@ -22,7 +20,7 @@ RUN groupadd --gid 1001 appgroup && \
 
 WORKDIR /app
 
-COPY --from=builder /install /usr/local
+COPY --from=builder /venv /venv
 COPY src/ ./src/
 
 RUN chown -R appuser:appgroup /app
@@ -31,4 +29,6 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV PATH="/venv/bin:$PATH"
+
+CMD ["/venv/bin/uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
