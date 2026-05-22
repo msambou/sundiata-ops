@@ -42,8 +42,8 @@ spec:
     proxy:
       enabled: true
       type: LoadBalancer
-      annotations:
-        service.beta.kubernetes.io/azure-load-balancer-resource-group: "cloudnative-ops-rg"
+      # annotations:
+      #   service.beta.kubernetes.io/azure-load-balancer-resource-group: "cloudnative-ops-rg"
 
     admin:
       enabled: true
