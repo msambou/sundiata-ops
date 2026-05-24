@@ -20,13 +20,19 @@ kubectl get kustomizations -n flux-system --watch
 kubectl get helmreleases -A --watch
 ```
 
-## Build and Push Image
+## Build and Push Images
 ```bash
 az acr login --name cloudnativeopsacr
 
+# Incident Image
 docker buildx build --no-cache --platform linux/amd64 \
   -t cloudnativeopsacr.azurecr.io/incident-api:latest \
   services/incident-api/ --push
+
+# Triage Agent Image
+docker buildx build --no-cache --platform linux/amd64 \
+  -t cloudnativeopsacr.azurecr.io/triage-agent:latest \
+  services/triage-agent/ --push
 ```
 
 ## View deployed microservices

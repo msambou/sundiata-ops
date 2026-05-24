@@ -9,7 +9,7 @@ from langgraph.graph import END, START, StateGraph
 
 from .models import IncidentCreated, IncidentTriaged, TriageState
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama.platform.svc.cluster.local:11434")
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://platform-ollama.platform.svc.cluster.local:11434")
 OLLAMA_MODEL = "llama3"
 VALID_SEVERITIES = {"low", "medium", "high", "critical"}
 

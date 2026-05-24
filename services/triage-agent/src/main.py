@@ -11,7 +11,7 @@ import nats
 from .models import IncidentCreated
 from .workflow import build_graph, run_triage_workflow
 
-NATS_URL = os.getenv("NATS_URL", "nats://nats.nats.svc.cluster.local:4222")
+NATS_URL = os.getenv("NATS_URL", "nats://nats-nats.nats.svc.cluster.local:4222")
 
 logger = logging.getLogger(__name__)
 
