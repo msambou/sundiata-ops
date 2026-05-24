@@ -1,10 +1,24 @@
-# triage-agent
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 See the root `CLAUDE.md` for project-wide conventions (Dockerfile pattern, pyproject.toml, Helm naming, OTel setup, NATS topics).
 
 ## Role
 
 Classifies incoming incidents by severity, detects duplicates, and routes them to the appropriate downstream agents by publishing to `incident.triaged`.
+
+## Source Layout
+
+```
+src/
+├── main.py       # NATS subscriber loop, OTel setup, graceful shutdown
+├── models.py     # Pydantic input/output models (IncidentCreated, IncidentTriaged)
+└── workflow.py   # LangGraph StateGraph (classify_severity → detect_duplicate → assign_team → publish_result)
+tests/
+├── test_main.py      # NATS connection and message handling
+└── test_workflow.py  # Individual graph node tests (mock httpx for Ollama calls)
+```
 
 ## NATS
 
@@ -86,3 +100,24 @@ This service is event-driven only. It has no FastAPI app and no HTTP server. The
 2. Subscribe to `incident.created` with a durable consumer
 3. For each message: deserialize → run LangGraph workflow → publish result → ack message
 4. Handle graceful shutdown on SIGTERM
+
+## Dockerfile CMD
+
+No uvicorn — override the pattern from root `CLAUDE.md`:
+```dockerfile
+CMD ["/venv/bin/python", "-m", "src.main"]
+```
+
+## OpenTelemetry
+
+Apply `LoggingInstrumentor` only. There is no FastAPI app and no HTTP client to instrument. Export errors to the OTLP collector are non-fatal — do not remove instrumentation because of them.
+
+## Testing
+
+Mock OTel before importing any `src.*` module to avoid instrumentation side-effects:
+```python
+from unittest.mock import patch, MagicMock
+with patch("opentelemetry.instrumentation.logging.LoggingInstrumentor"):
+    from src.workflow import run_workflow
+```
+Mock `httpx.AsyncClient` to stub Ollama responses in node-level tests.

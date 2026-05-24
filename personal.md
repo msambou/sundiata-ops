@@ -5,6 +5,9 @@ aks_cluster_name = "cloudnative-ops-aks"
 get_credentials_command = "az aks get-credentials --resource-group cloudnative-ops-rg --name cloudnative-ops-aks"
 resource_group_name = "cloudnative-ops-rg"
 
+## Claude Code Best Practices
+
+[https://code.claude.com/docs/en/best-practices](https://code.claude.com/docs/en/best-practices)
 ## Claude AI Capabilities
 * Can confidently give wrong answers. For example, I had to nudge Claude a few times before it was able to bootstrap FluxCD with the K8s cluster. At first, it told me it wasn't the clean approach to go.
 * 
