@@ -18,9 +18,9 @@ resources:
 
 env:
   - name: NATS_URL
-    value: "nats://nats.nats.svc.cluster.local:4222"
+    value: "nats://nats-nats.nats.svc.cluster.local:4222"
   - name: OLLAMA_URL
-    value: "http://ollama.platform.svc.cluster.local:11434"
+    value: "http://platform-ollama.platform.svc.cluster.local:11434"
   - name: OTEL_SERVICE_NAME
     value: "triage-agent"
 
