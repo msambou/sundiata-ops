@@ -6,3 +6,4 @@ resources:
   - ollama.yaml
   - prometheus-community.yaml
   - grafana.yaml
+  - otel-operator.yaml

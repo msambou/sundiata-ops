@@ -1,16 +1,12 @@
 replicaCount: 1
 
 image:
-  repository: cloudnativeopsacr.azurecr.io/incident-api
+  repository: cloudnativeopsacr.azurecr.io/triage-agent
   pullPolicy: Always
   tag: "latest"
 
 nameOverride: ""
 fullnameOverride: ""
-
-service:
-  type: ClusterIP
-  port: 8000
 
 resources:
   requests:
@@ -20,25 +16,13 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8000
-  initialDelaySeconds: 10
-  periodSeconds: 15
-  failureThreshold: 3
-
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8000
-  initialDelaySeconds: 5
-  periodSeconds: 10
-  failureThreshold: 3
-
 env:
+  - name: NATS_URL
+    value: "nats://nats.nats.svc.cluster.local:4222"
+  - name: OLLAMA_URL
+    value: "http://ollama.platform.svc.cluster.local:11434"
   - name: OTEL_SERVICE_NAME
-    value: "incident-api"
+    value: "triage-agent"
 
 podAnnotations:
   instrumentation.opentelemetry.io/inject-python: "true"

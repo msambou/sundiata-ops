@@ -1,19 +1,9 @@
 from __future__ import annotations
 
-import unittest.mock as mock
-
-# Patch OTel before importing the app so tests run without a live collector
-with mock.patch("opentelemetry.sdk.trace.TracerProvider.add_span_processor"):
-    with mock.patch(
-        "opentelemetry.instrumentation.fastapi.FastAPIInstrumentor.instrument_app"
-    ):
-        with mock.patch(
-            "opentelemetry.instrumentation.logging.LoggingInstrumentor.instrument"
-        ):
-            from src.main import app
-
 import pytest
 from fastapi.testclient import TestClient
+
+from src.main import app
 
 
 @pytest.fixture

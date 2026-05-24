@@ -6,3 +6,4 @@ resources:
   - nats.yaml
   - kong.yaml
   - ollama.yaml
+  - opentelemetry-operator.yaml
