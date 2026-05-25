@@ -55,7 +55,7 @@ Edges: `gather_context` → `analyze_root_cause` → `identify_components` → `
 ## Ollama Usage
 
 - **Model:** `llama3`
-- **Endpoint:** `http://ollama.platform.svc.cluster.local:11434`
+- **Endpoint:** `http://platform-ollama.platform.svc.cluster.local:11434`
 - **Client:** `httpx.AsyncClient` POST to `/api/generate`
 
 Example RCA prompt:
@@ -91,7 +91,7 @@ Event-driven only. No FastAPI app. Liveness via process health.
 ## Entry Point
 
 `src/main.py` should:
-1. Connect to NATS at `nats://nats.nats.svc.cluster.local:4222`
+1. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
 2. Subscribe to `incident.triaged` with a durable consumer
 3. For each message: deserialize → run LangGraph workflow → publish RCA result → ack
 4. Handle graceful shutdown on SIGTERM

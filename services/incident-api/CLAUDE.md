@@ -52,7 +52,7 @@ status: str
 
 This service will publish to `incident.created` after the incident record is created. When implementing:
 - Add `nats-py>=2.9.0` to `pyproject.toml`
-- Connect to `nats://nats.nats.svc.cluster.local:4222` in the lifespan context manager
+- Connect to `nats://nats-nats.nats.svc.cluster.local:4222` in the lifespan context manager
 - Publish the serialized `IncidentResponse` to `incident.created` after the record is created in `POST /incidents`
 
 ## pyproject.toml Notes

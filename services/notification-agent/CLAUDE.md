@@ -65,7 +65,7 @@ Event-driven only. No FastAPI app. Liveness via process health.
 ## Entry Point
 
 `src/main.py` should:
-1. Connect to NATS at `nats://nats.nats.svc.cluster.local:4222`
+1. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
 2. Subscribe to `incident.remediation.generated` with a durable consumer
 3. For each message: deserialize → format notification → send (stub: log) → ack
 4. Handle graceful shutdown on SIGTERM

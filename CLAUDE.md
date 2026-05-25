@@ -11,9 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Layer | Status |
 |---|---|
 | `infrastructure/` | ✅ Complete — Terraform provisions AKS (Standard_D8s_v3 × 2, Kubernetes 1.35), ACR, resource group, AcrPull role assignment, and FluxCD bootstrap. Region: West US 2. |
-| `gitops/` | ✅ Complete — Flux layer structure scaffolded; all platform Helm releases deployed (NATS, Kong, Ollama, kube-prometheus-stack, Loki); `incident-api` GitOps release live. |
-| `helm/` | ✅ Partial — `helm/incident-api/` complete. Remaining service charts pending. |
-| `services/` | ✅ Partial — `services/incident-api/` deployed and externally accessible via Kong. Remaining agents pending. |
+| `gitops/` | ✅ Complete — Layered Kustomization structure (infrastructure → apps); all platform Helm releases deployed (NATS, Kong, Ollama, kube-prometheus-stack, Loki, OTel Operator); `incident-api` and `triage-agent` GitOps releases live. |
+| `helm/` | ✅ Partial — `helm/incident-api/` and `helm/triage-agent/` complete. Remaining service charts pending. |
+| `services/` | ✅ Partial — `services/incident-api/` deployed externally via Kong; `services/triage-agent/` built. Remaining agents pending. |
 | `platform/` | Planned — directory not yet created |
 | CI/CD | Planned — Tekton pipelines |
 
@@ -31,24 +31,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```
 gitops/
-├── flux-system/              # Auto-populated by Flux bootstrap — do not edit manually
-├── kustomization.yaml        # Root entry point
+├── flux-system/                       # Auto-populated by Flux bootstrap — do not edit manually
+├── kustomization.yaml                 # Root: manages flux-system + two child Kustomization CRs
+├── infrastructure-kustomization.yaml  # Flux Kustomization CR — infra layer (healthChecks: otel-operator)
+├── apps-kustomization.yaml            # Flux Kustomization CR — apps layer (dependsOn: infrastructure)
 ├── infrastructure/
-│   ├── sources/              # HelmRepository CRDs (NATS, Kong, Ollama, prometheus-community, Grafana)
+│   ├── kustomization.yaml
+│   ├── sources/              # HelmRepository CRDs (NATS, Kong, Ollama, prometheus-community, Grafana, OTel)
 │   └── releases/             # HelmRelease manifests
 │       ├── kube-prometheus-stack.yaml   # monitoring namespace
 │       ├── loki.yaml                    # monitoring namespace
 │       ├── nats.yaml                    # nats namespace
 │       ├── kong.yaml                    # kong namespace (DB-less mode)
-│       └── ollama.yaml                  # platform namespace
+│       ├── ollama.yaml                  # platform namespace
+│       └── opentelemetry-operator.yaml  # monitoring namespace
 └── apps/
     ├── kustomization.yaml
-    └── incident-api/
+    ├── instrumentation/      # Instrumentation CR (opentelemetry.io/v1alpha1) covering apps namespace
+    ├── incident-api/
+    │   ├── kustomization.yaml
+    │   └── helmrelease.yaml
+    └── triage-agent/
         ├── kustomization.yaml
         └── helmrelease.yaml
 ```
 
-Flux reconciles `infrastructure/` before `apps/` — platform dependencies are always up before services.
+The root Kustomization (`flux-system`) creates two child Kustomization objects. `infrastructure` health-checks the `opentelemetry-operator` HelmRelease before reporting Ready. `apps` has `dependsOn: infrastructure` so it only starts after OTel Operator CRDs are registered — this prevents the `Instrumentation` CR dry-run from failing on a missing CRD.
 
 ### Deployed Platform Components
 
@@ -59,6 +67,7 @@ Flux reconciles `infrastructure/` before `apps/` — platform dependencies are a
 | NATS | `nats` | 2.14.0 | JetStream enabled, single broker |
 | Kong | `kong` | 3.2.0 | DB-less mode, LoadBalancer proxy |
 | Ollama | `platform` | 1.56.0 | CPU inference, llama3 + nomic-embed-text |
+| opentelemetry-operator | `monitoring` | 0.113.1 | Injects OTel auto-instrumentation via pod annotations |
 
 ### Kong DB-less Configuration
 
@@ -97,6 +106,18 @@ Flux installs this as Helm release name `apps-incident-api`, so:
 kubectl get svc -n <targetNamespace>
 ```
 
+### Known cluster service DNS names
+
+| HelmRelease | `storageNamespace` | Actual service DNS |
+|---|---|---|
+| `nats` | `nats` | `nats-nats.nats.svc.cluster.local:4222` |
+| `ollama` | `platform` | `platform-ollama.platform.svc.cluster.local:11434` |
+| `kong` | `kong` | `kong-kong-proxy.kong.svc.cluster.local` |
+| `incident-api` | `apps` | `apps-incident-api.apps.svc.cluster.local:8000` |
+| `triage-agent` | `apps` | `apps-triage-agent.apps.svc.cluster.local` (no HTTP — event-driven only) |
+
+Always verify with `kubectl get svc -n <namespace>` after a new deploy.
+
 ## Architecture
 
 ### Event Flow
@@ -111,7 +132,7 @@ incident.created → incident.triaged → incident.rca.completed
 | Service | Status | Role |
 |---|---|---|
 | `incident-api` | ✅ Deployed | FastAPI REST entry point; will emit `incident.created` events |
-| `triage-agent` | Planned | Severity classification, deduplication, routing |
+| `triage-agent` | ✅ Built | Severity classification, deduplication, routing |
 | `rca-agent` | Planned | Root cause analysis via logs/metrics/traces |
 | `remediation-agent` | Planned | Recovery recommendations + Kubernetes actions |
 | `notification-agent` | Planned | Slack/Teams alerts and escalation |
@@ -144,7 +165,7 @@ sundiata-ops/
 ├── platform/           # Planned — platform config (not yet created)
 ├── services/
 │   ├── incident-api/   # ✅ Live
-│   ├── triage-agent/   # Planned
+│   ├── triage-agent/   # ✅ Built
 │   ├── rca-agent/      # Planned
 │   ├── remediation-agent/  # Planned
 │   ├── notification-agent/ # Planned
@@ -166,7 +187,7 @@ services/<name>/
 ```
 
 Kubernetes manifests live in `helm/<name>/` (Helm charts), not inside the service directory.
-Each service must include OpenTelemetry instrumentation for traces, metrics, and logs.
+OTel instrumentation is handled by the OpenTelemetry Operator via pod annotation — no SDK code in services.
 
 ### Dockerfile Pattern
 
@@ -186,8 +207,6 @@ packages = ["src"]
 ```
 This is required because hatchling defaults to looking for a directory named after the project, which won't match when the project name contains hyphens.
 
-Always include `packaging>=24.0` as an explicit dependency — `opentelemetry-instrumentation` requires it but doesn't always declare it.
-
 ### Agent Implementation Pattern
 
 Every agent service wraps its reasoning in a **LangGraph** `StateGraph`. The typical flow:
@@ -198,7 +217,12 @@ Every agent service wraps its reasoning in a **LangGraph** `StateGraph`. The typ
 
 All LLM calls target the in-cluster Ollama service:
 ```
-http://ollama.platform.svc.cluster.local:11434
+http://platform-ollama.platform.svc.cluster.local:11434
+```
+
+NATS connect URL:
+```
+nats://nats-nats.nats.svc.cluster.local:4222
 ```
 
 Candidate models: Llama 3, Mistral, DeepSeek, Phi, Gemma.
@@ -219,7 +243,18 @@ Services MUST NOT call each other directly over HTTP — all inter-service commu
 
 ### OpenTelemetry
 
-The OTLP collector endpoint is `http://opentelemetry-collector.monitoring.svc.cluster.local:4317`. The collector is not yet deployed — export errors are expected and non-fatal (the SDK drops metrics silently). Do not remove OTel instrumentation because of these errors.
+Instrumentation is injected by the **OpenTelemetry Operator** — do NOT add OTel SDK code to service source. Application code contains only business logic.
+
+To enable injection for a service, add to `helm/<service>/values.yaml`:
+```yaml
+podAnnotations:
+  instrumentation.opentelemetry.io/inject-python: "true"
+env:
+  - name: OTEL_SERVICE_NAME
+    value: "<service-name>"
+```
+
+The `Instrumentation` CR lives at `gitops/apps/instrumentation/instrumentation.yaml` and covers the entire `apps` namespace. The OTLP endpoint is `http://opentelemetry-collector.monitoring.svc.cluster.local:4317`.
 
 ## Versioning Policy
 
@@ -261,7 +296,17 @@ AKS nodes already have AcrPull role (provisioned by Terraform) — no `imagePull
 ### Forcing Flux reconciliation (no flux CLI required)
 
 ```bash
+# Root kustomization
 kubectl annotate kustomization flux-system \
+  reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --overwrite -n flux-system
+
+# Child kustomizations (force individually when needed)
+kubectl annotate kustomization infrastructure \
+  reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --overwrite -n flux-system
+
+kubectl annotate kustomization apps \
   reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --overwrite -n flux-system
 ```

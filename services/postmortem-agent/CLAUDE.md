@@ -74,7 +74,7 @@ Edges: `build_timeline` → `generate_report` → `extract_action_items` → `pe
 ## Ollama Usage
 
 - **Model:** `llama3`
-- **Endpoint:** `http://ollama.platform.svc.cluster.local:11434`
+- **Endpoint:** `http://platform-ollama.platform.svc.cluster.local:11434`
 - **Client:** `httpx.AsyncClient` POST to `/api/generate`
 
 Example postmortem prompt:
@@ -109,7 +109,7 @@ Event-driven only. No FastAPI app. Liveness via process health.
 ## Entry Point
 
 `src/main.py` should:
-1. Connect to NATS at `nats://nats.nats.svc.cluster.local:4222`
+1. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
 2. Subscribe to both `incident.remediation.generated` and `incident.resolved` with separate durable consumers
 3. Correlate events by `incident_id` using an in-memory dict
 4. When both events are present for an `incident_id`: run LangGraph workflow → log report → clear state

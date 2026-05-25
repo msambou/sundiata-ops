@@ -12,7 +12,7 @@ Classifies incoming incidents by severity, detects duplicates, and routes them t
 
 ```
 src/
-├── main.py       # NATS subscriber loop, OTel setup, graceful shutdown
+├── main.py       # NATS subscriber loop, graceful shutdown
 ├── models.py     # Pydantic input/output models (IncidentCreated, IncidentTriaged)
 └── workflow.py   # LangGraph StateGraph (classify_severity → detect_duplicate → assign_team → publish_result)
 tests/
@@ -69,7 +69,7 @@ Edges: `classify_severity` → `detect_duplicate` → `assign_team` → `publish
 ## Ollama Usage
 
 - **Model:** `llama3`
-- **Endpoint:** `http://ollama.platform.svc.cluster.local:11434`
+- **Endpoint:** `http://platform-ollama.platform.svc.cluster.local:11434`
 - **Client:** use `httpx.AsyncClient` to POST to `/api/generate`
 - Keep prompts short and instruct the model to respond with a single word or JSON only — do not ask for explanations
 
@@ -96,7 +96,7 @@ This service is event-driven only. It has no FastAPI app and no HTTP server. The
 ## Entry Point
 
 `src/main.py` should:
-1. Connect to NATS at `nats://nats.nats.svc.cluster.local:4222`
+1. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
 2. Subscribe to `incident.created` with a durable consumer
 3. For each message: deserialize → run LangGraph workflow → publish result → ack message
 4. Handle graceful shutdown on SIGTERM
@@ -110,14 +110,8 @@ CMD ["/venv/bin/python", "-m", "src.main"]
 
 ## OpenTelemetry
 
-Apply `LoggingInstrumentor` only. There is no FastAPI app and no HTTP client to instrument. Export errors to the OTLP collector are non-fatal — do not remove instrumentation because of them.
+Instrumentation is injected by the OTel Operator — no SDK code in source. The pod annotation `instrumentation.opentelemetry.io/inject-python: "true"` in `helm/triage-agent/values.yaml` enables it.
 
 ## Testing
 
-Mock OTel before importing any `src.*` module to avoid instrumentation side-effects:
-```python
-from unittest.mock import patch, MagicMock
-with patch("opentelemetry.instrumentation.logging.LoggingInstrumentor"):
-    from src.workflow import run_workflow
-```
-Mock `httpx.AsyncClient` to stub Ollama responses in node-level tests.
+Import `src.*` modules directly — no OTel mocking needed. Mock `httpx.AsyncClient` to stub Ollama responses in workflow node tests.
