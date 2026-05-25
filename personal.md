@@ -69,3 +69,15 @@ kubectl run curlpod --image=curlimages/curl -it --rm --restart=Never -- \
 Claude had misconfigured Kong to use a different service name other than apps-incident-api, making the app
 unreachable.
 
+## Testing Ollama Deployment
+```bash
+kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- \
+  curl -s http://platform-ollama.platform.svc.cluster.local:11434/api/generate \
+  -d '{"model":"llama3","prompt":"say hello","stream":false}'
+```
+
+## Testing the NATS service
+```bash
+kubectl run nats-test --image=curlimages/curl --rm -it --restart=Never -- \
+  curl -s http://nats-nats.nats.svc.cluster.local:8222/healthz
+```
