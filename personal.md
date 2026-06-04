@@ -57,7 +57,7 @@ kong-kong-kong-admin   ClusterIP      10.0.147.78   <none>        8001/TCP,8444/
 kong-kong-kong-proxy   LoadBalancer   10.0.13.219   20.51.70.6    80:31000/TCP,443:31115/TCP   27h
 ```
 
-curl http://20.51.70.6/health
+curl http://20.29.152.92/health
 
 ## In-Cluster Curl
 ```bash
