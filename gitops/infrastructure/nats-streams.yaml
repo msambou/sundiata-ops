@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nats-stream-setup
+  namespace: nats
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: nats-setup
+          image: natsio/nats-box:latest
+          command:
+            - sh
+            - -c
+            - |
+              nats stream info incidents \
+                --server nats://nats-nats.nats.svc.cluster.local:4222 \
+              || nats stream add incidents \
+                --subjects "incident.*" \
+                --storage file \
+                --retention limits \
+                --server nats://nats-nats.nats.svc.cluster.local:4222
