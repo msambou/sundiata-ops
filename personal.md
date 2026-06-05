@@ -88,7 +88,7 @@ kubectl run nats-pub --rm -it --restart=Never \
   --image=natsio/nats-box \
   -n apps \
   -- nats pub incident.created '{
-    "id": "prod-test-005",
+    "id": "prod-test-006",
     "title": "DB connection pool exhausted",
     "description": "Postgres hit max connections on prod",
     "severity": "unknown",
@@ -96,3 +96,29 @@ kubectl run nats-pub --rm -it --restart=Never \
     "created_at": "2026-05-23T00:00:00Z"
   }' --server nats-nats.nats.svc.cluster.local:4222
 ```
+
+### Live Test 
+
+**Terminal to Monitor events**
+```bash
+kubectl run nats-sub --rm -it --restart=Never \
+  --image=natsio/nats-box -n apps \
+  -- nats sub incident.triaged \
+  --server nats-nats.nats.svc.cluster.local:4222
+```
+
+**Send sample incident event**
+```bash
+kubectl run nats-pub --rm -it --restart=Never \
+  --image=natsio/nats-box \
+  -n apps \
+  -- nats pub incident.created '{
+    "id": "test-009",
+    "title": "DB connection pool exhausted",
+    "description": "Postgres hit max connections on prod",
+    "severity": "unknown",
+    "source": "api",
+    "created_at": "2026-05-23T00:00:00Z"
+  }' --server nats-nats.nats.svc.cluster.local:4222
+```
+

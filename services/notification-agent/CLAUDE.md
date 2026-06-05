@@ -62,10 +62,15 @@ No `langgraph` dependency needed for this service.
 
 Event-driven only. No FastAPI app. Liveness via process health.
 
+## Logging
+
+Always call `logging.basicConfig(level=logging.INFO)` at the top of `main.py`. The OTel operator injects log exporters but Python's root logger defaults to `WARNING` — without this, all `INFO` logs are silently dropped before OTel sees them. See root `CLAUDE.md` for full explanation.
+
 ## Entry Point
 
 `src/main.py` should:
-1. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
-2. Subscribe to `incident.remediation.generated` with a durable consumer
-3. For each message: deserialize → format notification → send (stub: log) → ack
-4. Handle graceful shutdown on SIGTERM
+1. Call `logging.basicConfig(level=logging.INFO)` before anything else
+2. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
+3. Subscribe to `incident.remediation.generated` with a durable consumer
+4. For each message: deserialize → format notification → send (stub: log) → ack
+5. Handle graceful shutdown on SIGTERM

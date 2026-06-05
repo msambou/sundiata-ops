@@ -13,13 +13,19 @@ from .workflow import build_graph, run_triage_workflow
 
 NATS_URL = os.getenv("NATS_URL", "nats://nats-nats.nats.svc.cluster.local:4222")
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
 async def process_message(compiled_graph: Any, msg: Any) -> None:
     try:
         incident = IncidentCreated.model_validate_json(msg.data)
+        logger.info("received incident", extra={"incident_id": incident.id, "title": incident.title})
         await run_triage_workflow(compiled_graph, incident)
+        logger.info("incident triaged", extra={"incident_id": incident.id})
         await msg.ack()
     except Exception:
         logger.exception("failed to process incident")

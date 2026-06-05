@@ -256,6 +256,20 @@ env:
 
 The `Instrumentation` CR lives at `gitops/apps/instrumentation/instrumentation.yaml` and covers the entire `apps` namespace. The OTLP endpoint is `http://opentelemetry-collector.monitoring.svc.cluster.local:4317`.
 
+### Logging Best Practice
+
+**Always call `logging.basicConfig(level=logging.INFO)` in every service's `main.py`.** The OTel operator injects auto-instrumentation that exports logs to the collector, but it is an *exporter* — it only processes log records that Python's logging system actually emits. Python's root logger defaults to `WARNING`, silently dropping all `INFO` logs before OTel ever sees them.
+
+Each layer has a distinct responsibility:
+
+| Layer | Responsibility |
+|---|---|
+| `logging.basicConfig(level=INFO)` | Controls which log records Python emits |
+| OTel `LoggingInstrumentor` (injected) | Injects trace/span IDs into log records |
+| OTel collector | Ships logs to Loki |
+
+Without `basicConfig(level=INFO)`, startup messages, business events, and processing logs are all silently dropped. Only errors appear. Every service must set this explicitly — never rely on the Python default.
+
 ## Versioning Policy
 
 Always use the latest stable versions of all tools, libraries, and platforms (Kubernetes, Terraform providers, Python packages, Helm charts, etc.). Before specifying any version, verify the current stable release. Never pin to an outdated version without an explicit reason from the user.
