@@ -113,7 +113,7 @@ kubectl run nats-pub --rm -it --restart=Never \
   --image=natsio/nats-box \
   -n apps \
   -- nats pub incident.created '{
-    "id": "test-008",
+    "id": "test-009",
     "title": "DB connection pool exhausted",
     "description": "Postgres hit max connections on prod",
     "severity": "unknown",
