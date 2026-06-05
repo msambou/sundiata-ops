@@ -11,11 +11,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Layer | Status |
 |---|---|
 | `infrastructure/` | ✅ Complete — Terraform provisions AKS (Standard_D8s_v3 × 2, Kubernetes 1.35), ACR, resource group, AcrPull role assignment, and FluxCD bootstrap. Region: West US 2. |
-| `gitops/` | ✅ Complete — Layered Kustomization structure (infrastructure → apps); all platform Helm releases deployed (NATS, Kong, Ollama, kube-prometheus-stack, Loki, OTel Operator); `incident-api` and `triage-agent` GitOps releases live. |
+| `gitops/` | ✅ Partial — Layered Kustomization structure (infrastructure → apps); all platform Helm releases deployed; `incident-api` and `triage-agent` GitOps releases live; `nats-streams.yaml` Job live (creates `incidents` JetStream stream before agents start). |
 | `helm/` | ✅ Partial — `helm/incident-api/` and `helm/triage-agent/` complete. Remaining service charts pending. |
-| `services/` | ✅ Partial — `services/incident-api/` deployed externally via Kong; `services/triage-agent/` built. Remaining agents pending. |
+| `services/` | ✅ Partial — `incident-api` deployed via Kong (NATS publish not yet wired); `triage-agent` deployed and running; remaining agents have `CLAUDE.md` + `Makefile` only. |
+| CI/CD | 🔜 Next priority — Tekton pipelines (install Tekton, build pipeline per service: lint → test → docker build → push to ACR → update HelmRelease image tag) |
 | `platform/` | Planned — directory not yet created |
-| CI/CD | Planned — Tekton pipelines |
+
+### Implementation Roadmap (ordered)
+
+| Step | Work | Status |
+|---|---|---|
+| 1 | Merge `triage-agent` branch → `main`; push image with `make push SERVICE=triage-agent` | ✅ Done |
+| 2 | Install Tekton on AKS; scaffold build pipeline (lint → test → build → push → update image tag) | 🔜 Next priority |
+| 3 | Wire `incident-api` NATS publish to `incident.created` | Blocked on step 2 |
+| 4 | Scaffold `rca-agent` (Python + Helm + GitOps) | Pending |
+| 5 | Scaffold `remediation-agent` | Pending |
+| 6 | Scaffold `notification-agent` | Pending |
+| 7 | Scaffold `postmortem-agent` | Pending |
 
 ### Infrastructure Details
 
@@ -131,12 +143,12 @@ incident.created → incident.triaged → incident.rca.completed
 
 | Service | Status | Role |
 |---|---|---|
-| `incident-api` | ✅ Deployed | FastAPI REST entry point; will emit `incident.created` events |
-| `triage-agent` | ✅ Built | Severity classification, deduplication, routing |
-| `rca-agent` | Planned | Root cause analysis via logs/metrics/traces |
-| `remediation-agent` | Planned | Recovery recommendations + Kubernetes actions |
-| `notification-agent` | Planned | Slack/Teams alerts and escalation |
-| `postmortem-agent` | Planned | Incident timelines and historical reporting |
+| `incident-api` | ✅ Deployed | FastAPI REST entry point; receives `POST /incidents` via Kong. **NATS publish (`incident.created`) not yet wired** — planned after Tekton CI is set up. |
+| `triage-agent` | ✅ Deployed | Severity classification, deduplication, team routing. Subscribes `incident.created` → publishes `incident.triaged`. |
+| `rca-agent` | 🔜 Scaffolding pending | Root cause analysis via logs/metrics/traces. `CLAUDE.md` + `Makefile` exist; no Python code yet. |
+| `remediation-agent` | 🔜 Scaffolding pending | Recovery recommendations + Kubernetes actions. `CLAUDE.md` + `Makefile` exist; no Python code yet. |
+| `notification-agent` | 🔜 Scaffolding pending | Slack/Teams alerts and escalation. `CLAUDE.md` + `Makefile` exist; no Python code yet. |
+| `postmortem-agent` | 🔜 Scaffolding pending | Incident timelines and historical reporting. `CLAUDE.md` + `Makefile` exist; no Python code yet. |
 
 All agents share a **LangGraph + Ollama** stack. Ollama runs in-cluster (not an external API), serving as the shared LLM inference backend.
 
@@ -164,14 +176,15 @@ sundiata-ops/
 ├── helm/               # Helm charts per service
 ├── platform/           # Planned — platform config (not yet created)
 ├── services/
-│   ├── incident-api/   # ✅ Live
-│   ├── triage-agent/   # ✅ Built
-│   ├── rca-agent/      # Planned
-│   ├── remediation-agent/  # Planned
-│   ├── notification-agent/ # Planned
-│   └── postmortem-agent/   # Planned
+│   ├── incident-api/   # ✅ Live — NATS publish pending
+│   ├── triage-agent/   # ✅ Deployed
+│   ├── rca-agent/      # 🔜 CLAUDE.md + Makefile only
+│   ├── remediation-agent/  # 🔜 CLAUDE.md + Makefile only
+│   ├── notification-agent/ # 🔜 CLAUDE.md + Makefile only
+│   └── postmortem-agent/   # 🔜 CLAUDE.md + Makefile only
 ├── docs/               # Architecture docs
-└── scripts/            # Utility scripts
+├── scripts/            # Utility scripts
+└── Makefile            # Root make targets: push, build, test, lint, run (per-service + all variants)
 ```
 
 ### Per-Service Directory Structure
@@ -183,6 +196,7 @@ services/<name>/
 ├── src/            # Application source (Python package)
 ├── tests/          # Unit and integration tests
 ├── Dockerfile
+├── Makefile        # Per-service build/push/test/run targets
 └── pyproject.toml  # Dependencies and tool config (ruff, mypy, pytest)
 ```
 
@@ -279,11 +293,47 @@ Always use the latest stable versions of all tools, libraries, and platforms (Ku
 - **Self-hosted inference**: Ollama runs inside Kubernetes — never call external LLM APIs unless explicitly adding that capability.
 - **Event-driven coupling**: Services communicate exclusively via NATS JetStream topics, not direct HTTP calls between agents.
 - **GitOps deployment**: Changes to Kubernetes state go through FluxCD (commit → PR → merge → Flux reconciles). Never use `kubectl apply` directly.
-- **Tekton for CI**: Build pipelines are Tekton-native (Kubernetes CRDs), not GitHub Actions or similar.
+- **Tekton for CI**: Build pipelines are Tekton-native (Kubernetes CRDs), not GitHub Actions or similar. Until Tekton pipelines are in place, per-service `Makefile` targets (`make push SERVICE=<name>`) serve as the manual CI bridge.
 - **Kong DB-less**: Kong is configured via static declarative config in `gitops/infrastructure/releases/kong.yaml`. The Ingress Controller is disabled. Add new service routes to the `dblessConfig.config` block.
 - **AKS LoadBalancer**: Do NOT set `service.beta.kubernetes.io/azure-load-balancer-resource-group` on LoadBalancer services. AKS manages load balancer resources in its own auto-generated node resource group and has no permissions over `cloudnative-ops-rg`.
 
 ## Development Commands
+
+### Makefile targets (preferred)
+
+Every service has a `Makefile` with standard targets. Use these instead of raw commands.
+
+```bash
+# Single service (run from repo root)
+make build  SERVICE=triage-agent    # docker buildx build (no push)
+make push   SERVICE=triage-agent    # docker buildx build --push to ACR
+make test   SERVICE=triage-agent    # pytest
+make lint   SERVICE=triage-agent    # ruff check + format --check
+make run    SERVICE=triage-agent    # run locally with NATS_URL / OLLAMA_URL
+
+# All services at once
+make build-all
+make push-all
+make test-all
+make lint-all
+
+# Override vars
+make run SERVICE=triage-agent NATS_URL=nats://localhost:4222 OLLAMA_URL=http://localhost:11434
+make push SERVICE=triage-agent PLATFORM=linux/arm64
+```
+
+Variables available per-service:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `REGISTRY` | `cloudnativeopsacr.azurecr.io` | ACR registry prefix |
+| `PLATFORM` | `linux/amd64` | Override to `linux/arm64` for Apple Silicon local builds |
+| `NATS_URL` | `nats://localhost:4222` | Local NATS for `make run` |
+| `OLLAMA_URL` | `http://localhost:11434` | Local Ollama for `make run` (LangGraph agents only) |
+
+**`notification-agent` has no `OLLAMA_URL`** — it uses no LangGraph/Ollama.
+
+### Raw commands (use when not at repo root)
 
 ```bash
 # Run from services/<name>/
@@ -299,7 +349,10 @@ uvicorn src.main:app --reload                       # local dev server (incident
 ```bash
 az acr login --name cloudnativeopsacr
 
-# Use --platform linux/amd64 if building on Apple Silicon
+# Preferred: use Makefile
+make push SERVICE=<service-name>
+
+# Manual equivalent (Apple Silicon → linux/amd64)
 docker buildx build --no-cache --platform linux/amd64 \
   -t cloudnativeopsacr.azurecr.io/<service-name>:latest \
   services/<service-name>/ --push
