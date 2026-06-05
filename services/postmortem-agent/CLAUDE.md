@@ -106,11 +106,16 @@ Beyond the common set in root `CLAUDE.md`:
 
 Event-driven only. No FastAPI app. Liveness via process health.
 
+## Logging
+
+Always call `logging.basicConfig(level=logging.INFO)` at the top of `main.py`. The OTel operator injects log exporters but Python's root logger defaults to `WARNING` — without this, all `INFO` logs are silently dropped before OTel sees them. See root `CLAUDE.md` for full explanation.
+
 ## Entry Point
 
 `src/main.py` should:
-1. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
-2. Subscribe to both `incident.remediation.generated` and `incident.resolved` with separate durable consumers
-3. Correlate events by `incident_id` using an in-memory dict
-4. When both events are present for an `incident_id`: run LangGraph workflow → log report → clear state
-5. Handle graceful shutdown on SIGTERM
+1. Call `logging.basicConfig(level=logging.INFO)` before anything else
+2. Connect to NATS at `nats://nats-nats.nats.svc.cluster.local:4222`
+3. Subscribe to both `incident.remediation.generated` and `incident.resolved` with separate durable consumers
+4. Correlate events by `incident_id` using an in-memory dict
+5. When both events are present for an `incident_id`: run LangGraph workflow → log report → clear state
+6. Handle graceful shutdown on SIGTERM
