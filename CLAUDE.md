@@ -311,6 +311,40 @@ kubectl annotate kustomization apps \
   --overwrite -n flux-system
 ```
 
+**Important:** Annotating a Kustomization only re-applies the HelmRelease *object* — it does NOT force the Helm controller to upgrade the chart. To force a chart upgrade, annotate the HelmRelease directly:
+
+```bash
+kubectl annotate helmrelease <name> \
+  reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --overwrite -n flux-system
+```
+
+### Recovering a stalled HelmRelease
+
+A HelmRelease enters `Stalled` state when a Helm upgrade fails AND there is no previous successful release to roll back to. Flux stops retrying. Symptom:
+
+```
+message: 'Failed to perform remediation: missing target release for rollback: cannot remediate failed release'
+reason: MissingRollbackTarget
+type: Stalled
+```
+
+**Fix — suspend and resume to force a fresh install:**
+
+```bash
+kubectl patch helmrelease <name> -n flux-system \
+  --type=merge -p '{"spec":{"suspend":true}}'
+
+kubectl patch helmrelease <name> -n flux-system \
+  --type=merge -p '{"spec":{"suspend":false}}'
+
+kubectl annotate helmrelease <name> \
+  reconcile.fluxcd.io/requestedAt="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --overwrite -n flux-system
+```
+
+**Prevention:** ensure the chart values are correct (especially DNS names — see Helm + Flux naming convention above) before the first deploy. A pod that crashes on startup due to a wrong env var will fail the Helm upgrade health check and trigger this stalled state.
+
 ## Safety Rules
 
 ### Absolute Restrictions
