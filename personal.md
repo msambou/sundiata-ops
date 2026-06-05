@@ -81,3 +81,18 @@ kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- \
 kubectl run nats-test --image=curlimages/curl --rm -it --restart=Never -- \
   curl -s http://nats-nats.nats.svc.cluster.local:8222/healthz
 ```
+
+
+```
+kubectl run nats-pub --rm -it --restart=Never \
+  --image=natsio/nats-box \
+  -n apps \
+  -- nats pub incident.created '{
+    "id": "prod-test-005",
+    "title": "DB connection pool exhausted",
+    "description": "Postgres hit max connections on prod",
+    "severity": "unknown",
+    "source": "api",
+    "created_at": "2026-05-23T00:00:00Z"
+  }' --server nats-nats.nats.svc.cluster.local:4222
+```

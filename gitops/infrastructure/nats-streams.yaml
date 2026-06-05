@@ -22,4 +22,5 @@ spec:
                 --subjects "incident.*" \
                 --storage file \
                 --retention limits \
+                --defaults \
                 --server nats://nats-nats.nats.svc.cluster.local:4222
