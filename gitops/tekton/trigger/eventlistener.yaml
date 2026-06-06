@@ -5,6 +5,9 @@ metadata:
   namespace: tekton-ci
 spec:
   serviceAccountName: tekton-triggers-sa
+  resources:
+    kubernetesResource:
+      serviceType: LoadBalancer
   triggers:
     # One trigger per service — CEL filter matches changed paths on push to main
     - name: triage-agent

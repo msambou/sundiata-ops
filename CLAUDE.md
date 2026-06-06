@@ -294,7 +294,15 @@ Always use the latest stable versions of all tools, libraries, and platforms (Ku
 - **Event-driven coupling**: Services communicate exclusively via NATS JetStream topics, not direct HTTP calls between agents.
 - **GitOps deployment**: Changes to Kubernetes state go through FluxCD (commit → PR → merge → Flux reconciles). Never use `kubectl apply` directly.
 - **Tekton for CI**: Build pipelines are Tekton-native (Kubernetes CRDs), not GitHub Actions or similar. Until Tekton pipelines are in place, per-service `Makefile` targets (`make push SERVICE=<name>`) serve as the manual CI bridge.
-- **Kong DB-less**: Kong is configured via static declarative config in `gitops/infrastructure/releases/kong.yaml`. The Ingress Controller is disabled. Add new service routes to the `dblessConfig.config` block.
+- **Kong DB-less**:
+
+## Tekton Gotchas (learned the hard way)
+
+- **No `ClusterTask` in Tekton v1**: `ClusterTask` was removed in Tekton v1 (shipped as v1.13.0 in this cluster). Every `taskRef` must use `kind: Task` and the Task must exist in the same namespace (`tekton-ci`). Never write `kind: ClusterTask` — it will cause a validation webhook error on dry-run.
+- **No official Helm chart**: Tekton does not publish a Helm chart. Install via the official release manifests at `https://infra.tekton.dev/tekton-releases/pipeline/latest/release.yaml` and `https://infra.tekton.dev/tekton-releases/triggers/latest/release.yaml`. Commit these into `gitops/infrastructure/tekton/pipelines/` and `gitops/infrastructure/tekton/triggers/` and apply via Flux Kustomization pointing at those paths.
+- **No `../` path traversal in Flux Kustomizations**: All resources referenced by a `kustomization.yaml` must live within the directory that the Flux Kustomization reconciles. Place release manifests inside the reconciled subdirectory — never use `../` to reference a parent path.
+- **`OCIRepository` API version**: Use `source.toolkit.fluxcd.io/v1` (not `v1beta2`) for `OCIRepository` in this cluster's Flux version.
+- **ACR token scope**: When creating the `acr-credentials` secret for kaniko, use the built-in `_repositories_push` scope map (grants read/write across all repos) — not a per-repository token. A per-repo token will break the pipeline for any service other than the one it was scoped to. Kong is configured via static declarative config in `gitops/infrastructure/releases/kong.yaml`. The Ingress Controller is disabled. Add new service routes to the `dblessConfig.config` block.
 - **AKS LoadBalancer**: Do NOT set `service.beta.kubernetes.io/azure-load-balancer-resource-group` on LoadBalancer services. AKS manages load balancer resources in its own auto-generated node resource group and has no permissions over `cloudnative-ops-rg`.
 
 ## Development Commands
