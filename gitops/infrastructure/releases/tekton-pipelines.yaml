@@ -3,63 +3,61 @@ kind: Namespace
 metadata:
   name: tekton-pipelines
 ---
-# Verify latest chart version: helm search repo tektoncd/pipeline --versions
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
+# Tekton Pipelines — installed via official release manifest fetched from GitHub
+# Check latest release: https://github.com/tektoncd/pipeline/releases
+# Update ref: tag to the latest stable release before applying
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: OCIRepository
+metadata:
+  name: tekton-pipelines
+  namespace: flux-system
+spec:
+  interval: 12h
+  url: oci://ghcr.io/tektoncd/pipeline/release
+  ref:
+    tag: v0.68.0
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
 metadata:
   name: tekton-pipelines
   namespace: flux-system
 spec:
   interval: 10m
-  targetNamespace: tekton-pipelines
-  storageNamespace: tekton-pipelines
-  chart:
-    spec:
-      chart: pipeline
-      version: ">=0.1.0-0"
-      sourceRef:
-        kind: HelmRepository
-        name: tektoncd
-        namespace: flux-system
-      interval: 12h
-  install:
-    crds: CreateReplace
-    remediation:
-      retries: 3
-  upgrade:
-    crds: CreateReplace
-    remediation:
-      retries: 3
-  values: {}
+  sourceRef:
+    kind: OCIRepository
+    name: tekton-pipelines
+  path: ./
+  prune: false
+  timeout: 5m
+  wait: true
 ---
-# Verify latest chart version: helm search repo tektoncd/triggers --versions
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
+# Tekton Triggers — installed via official release manifest
+# Check latest release: https://github.com/tektoncd/triggers/releases
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: OCIRepository
+metadata:
+  name: tekton-triggers
+  namespace: flux-system
+spec:
+  interval: 12h
+  url: oci://ghcr.io/tektoncd/triggers/release
+  ref:
+    tag: v0.30.0
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
 metadata:
   name: tekton-triggers
   namespace: flux-system
 spec:
   interval: 10m
-  targetNamespace: tekton-pipelines
-  storageNamespace: tekton-pipelines
+  sourceRef:
+    kind: OCIRepository
+    name: tekton-triggers
+  path: ./
+  prune: false
+  timeout: 5m
   dependsOn:
     - name: tekton-pipelines
-      namespace: flux-system
-  chart:
-    spec:
-      chart: triggers
-      version: ">=0.1.0-0"
-      sourceRef:
-        kind: HelmRepository
-        name: tektoncd
-        namespace: flux-system
-      interval: 12h
-  install:
-    crds: CreateReplace
-    remediation:
-      retries: 3
-  upgrade:
-    crds: CreateReplace
-    remediation:
-      retries: 3
-  values: {}
+  wait: true
