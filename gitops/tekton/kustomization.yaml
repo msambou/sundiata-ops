@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
+  - tasks/git-clone.yaml
   - tasks/lint.yaml
   - tasks/test.yaml
   - tasks/build-push.yaml
