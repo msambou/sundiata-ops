@@ -1,22 +1,3 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: tekton-pipelines
----
-# Tekton Pipelines — installed via official release manifest fetched from GitHub
-# Check latest release: https://github.com/tektoncd/pipeline/releases
-# Update ref: tag to the latest stable release before applying
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: OCIRepository
-metadata:
-  name: tekton-pipelines
-  namespace: flux-system
-spec:
-  interval: 12h
-  url: oci://ghcr.io/tektoncd/pipeline/release
-  ref:
-    tag: v0.68.0
----
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -24,27 +5,14 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  sourceRef:
-    kind: OCIRepository
-    name: tekton-pipelines
-  path: ./
+  path: ./gitops/infrastructure/tekton/pipelines
   prune: false
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
   timeout: 5m
   wait: true
 ---
-# Tekton Triggers — installed via official release manifest
-# Check latest release: https://github.com/tektoncd/triggers/releases
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: OCIRepository
-metadata:
-  name: tekton-triggers
-  namespace: flux-system
-spec:
-  interval: 12h
-  url: oci://ghcr.io/tektoncd/triggers/release
-  ref:
-    tag: v0.30.0
----
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -52,11 +20,11 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  sourceRef:
-    kind: OCIRepository
-    name: tekton-triggers
-  path: ./
+  path: ./gitops/infrastructure/tekton/triggers
   prune: false
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
   timeout: 5m
   dependsOn:
     - name: tekton-pipelines
