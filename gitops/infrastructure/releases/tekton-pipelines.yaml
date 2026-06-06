@@ -13,6 +13,7 @@ spec:
   timeout: 5m
   wait: true
 ---
+# Step 1: install triggers controller + webhook and wait for them to be healthy
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -20,7 +21,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./gitops/infrastructure/tekton/triggers
+  path: ./gitops/infrastructure/tekton/triggers/core
   prune: false
   sourceRef:
     kind: GitRepository
@@ -28,4 +29,23 @@ spec:
   timeout: 5m
   dependsOn:
     - name: tekton-pipelines
+  wait: true
+---
+# Step 2: install ClusterInterceptors only after the webhook is running and
+# ready to inject CA bundles into the ClusterInterceptor specs
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: tekton-interceptors
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./gitops/infrastructure/tekton/triggers/interceptors
+  prune: false
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  timeout: 5m
+  dependsOn:
+    - name: tekton-triggers
   wait: true
