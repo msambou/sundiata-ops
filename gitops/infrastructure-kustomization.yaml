@@ -24,3 +24,7 @@ spec:
       kind: Kustomization
       name: tekton-triggers
       namespace: flux-system
+    - apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      name: tekton-interceptors
+      namespace: flux-system
