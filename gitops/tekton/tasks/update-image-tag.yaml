@@ -1,0 +1,54 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-image-tag
+  namespace: tekton-ci
+spec:
+  params:
+    - name: service-name
+      type: string
+      description: Service directory name / HelmRelease name under gitops/apps/
+    - name: image-tag
+      type: string
+      description: New image tag to write into the HelmRelease values
+    - name: git-user-name
+      type: string
+      default: tekton-ci
+    - name: git-user-email
+      type: string
+      default: tekton-ci@sundiata-ops
+    - name: git-branch
+      type: string
+      default: main
+  workspaces:
+    - name: source
+      description: Cloned repository (must have write access via github-token secret)
+  volumes:
+    - name: github-token
+      secret:
+        secretName: github-token
+  steps:
+    - name: patch-helmrelease
+      image: mikefarah/yq:4
+      workingDir: $(workspaces.source.path)
+      script: |
+        #!/bin/sh
+        set -e
+        HELMRELEASE=gitops/apps/$(params.service-name)/helmrelease.yaml
+        yq e '.spec.values.image.tag = "$(params.image-tag)"' -i "$HELMRELEASE"
+    - name: git-push
+      image: alpine/git:latest
+      workingDir: $(workspaces.source.path)
+      volumeMounts:
+        - name: github-token
+          mountPath: /var/secrets/github
+      script: |
+        #!/bin/sh
+        set -e
+        TOKEN=$(cat /var/secrets/github/token)
+        REMOTE=$(git remote get-url origin | sed 's|https://|https://x-access-token:'"$TOKEN"'@|')
+        git config user.name "$(params.git-user-name)"
+        git config user.email "$(params.git-user-email)"
+        git add gitops/apps/$(params.service-name)/helmrelease.yaml
+        git commit -m "ci: update $(params.service-name) image tag to $(params.image-tag)"
+        git push "$REMOTE" HEAD:$(params.git-branch)

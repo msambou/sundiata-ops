@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: build-push
+  namespace: tekton-ci
+spec:
+  params:
+    - name: service-name
+      type: string
+      description: Service directory name under services/
+    - name: image-tag
+      type: string
+      description: Image tag (typically the git commit SHA)
+    - name: registry
+      type: string
+      default: cloudnativeopsacr.azurecr.io
+  workspaces:
+    - name: source
+      description: Cloned repository
+    - name: docker-config
+      description: Docker config.json with ACR credentials
+  results:
+    - name: image-digest
+      description: Digest of the pushed image
+  steps:
+    - name: build-and-push
+      # kaniko builds OCI images without a Docker daemon
+      image: gcr.io/kaniko-project/executor:latest
+      args:
+        - --dockerfile=$(workspaces.source.path)/services/$(params.service-name)/Dockerfile
+        - --context=$(workspaces.source.path)/services/$(params.service-name)
+        - --destination=$(params.registry)/$(params.service-name):$(params.image-tag)
+        - --destination=$(params.registry)/$(params.service-name):latest
+        - --digest-file=$(results.image-digest.path)
+        - --cache=true
+        - --cache-repo=$(params.registry)/cache/$(params.service-name)
+      env:
+        - name: DOCKER_CONFIG
+          value: $(workspaces.docker-config.path)

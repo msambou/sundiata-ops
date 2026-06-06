@@ -1,0 +1,45 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: service-ci
+  namespace: tekton-ci
+spec:
+  params:
+    - name: git-url
+    - name: git-revision
+    - name: git-branch
+      default: main
+    - name: service-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1
+      kind: PipelineRun
+      metadata:
+        generateName: $(tt.params.service-name)-ci-
+        namespace: tekton-ci
+      spec:
+        serviceAccountName: pipeline-runner
+        pipelineRef:
+          name: service-ci
+        params:
+          - name: git-url
+            value: $(tt.params.git-url)
+          - name: git-revision
+            value: $(tt.params.git-revision)
+          - name: service-name
+            value: $(tt.params.service-name)
+          - name: git-branch
+            value: $(tt.params.git-branch)
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                accessModes: [ReadWriteOnce]
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: docker-config
+            secret:
+              secretName: acr-credentials
+              items:
+                - key: .dockerconfigjson
+                  path: config.json

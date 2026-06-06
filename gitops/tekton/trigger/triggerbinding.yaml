@@ -1,0 +1,19 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerBinding
+metadata:
+  name: github-push
+  namespace: tekton-ci
+spec:
+  params:
+    - name: git-revision
+      value: $(body.after)
+    - name: git-url
+      value: $(body.repository.clone_url)
+    - name: git-branch
+      value: $(body.ref)
+    - name: service-name
+      # GitHub push events don't carry a service name — the EventListener
+      # CEL filter routes per-service by inspecting changed paths,
+      # or you create one EventListener per service. Defaulted here; override
+      # in TriggerTemplate if using a single listener for all services.
+      value: $(extensions.service-name)

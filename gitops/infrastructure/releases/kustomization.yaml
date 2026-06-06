@@ -7,3 +7,4 @@ resources:
   - kong.yaml
   - ollama.yaml
   - opentelemetry-operator.yaml
+  - tekton-pipelines.yaml
