@@ -16,3 +16,11 @@ spec:
       kind: HelmRelease
       name: opentelemetry-operator
       namespace: flux-system
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: tekton-pipelines
+      namespace: flux-system
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: tekton-triggers
+      namespace: flux-system
