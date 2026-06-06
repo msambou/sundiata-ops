@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: lint
+  namespace: tekton-ci
+spec:
+  params:
+    - name: service-name
+      type: string
+      description: Service directory name under services/
+  workspaces:
+    - name: source
+      description: Cloned repository
+  steps:
+    - name: lint
+      image: python:3.14-slim
+      workingDir: $(workspaces.source.path)/services/$(params.service-name)
+      script: |
+        #!/bin/sh
+        set -e
+        pip install --quiet ruff
+        ruff check .
+        ruff format --check .

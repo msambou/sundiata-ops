@@ -7,3 +7,4 @@ resources:
   - prometheus-community.yaml
   - grafana.yaml
   - otel-operator.yaml
+  - tekton.yaml

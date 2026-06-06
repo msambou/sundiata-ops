@@ -1,0 +1,98 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: service-ci
+  namespace: tekton-ci
+spec:
+  params:
+    - name: git-url
+      type: string
+      description: Git repository URL
+    - name: git-revision
+      type: string
+      description: Git commit SHA or branch to build
+    - name: service-name
+      type: string
+      description: Service to build (e.g. triage-agent)
+    - name: registry
+      type: string
+      default: cloudnativeopsacr.azurecr.io
+    - name: git-branch
+      type: string
+      default: main
+
+  workspaces:
+    - name: source
+      description: Shared workspace for cloned source code
+    - name: docker-config
+      description: Docker credentials for ACR (created from acr-credentials secret)
+
+  tasks:
+    - name: clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: deleteExisting
+          value: "true"
+
+    - name: lint
+      runAfter: [clone]
+      taskRef:
+        name: lint
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: service-name
+          value: $(params.service-name)
+
+    - name: test
+      runAfter: [clone]
+      taskRef:
+        name: test
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: service-name
+          value: $(params.service-name)
+
+    - name: build-push
+      runAfter: [lint, test]
+      taskRef:
+        name: build-push
+      workspaces:
+        - name: source
+          workspace: source
+        - name: docker-config
+          workspace: docker-config
+      params:
+        - name: service-name
+          value: $(params.service-name)
+        - name: image-tag
+          value: $(params.git-revision)
+        - name: registry
+          value: $(params.registry)
+
+    - name: update-image-tag
+      runAfter: [build-push]
+      taskRef:
+        name: update-image-tag
+      workspaces:
+        - name: source
+          workspace: source
+      params:
+        - name: service-name
+          value: $(params.service-name)
+        - name: image-tag
+          value: $(params.git-revision)
+        - name: git-branch
+          value: $(params.git-branch)

@@ -1,0 +1,47 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: github-push
+  namespace: tekton-ci
+spec:
+  serviceAccountName: tekton-triggers-sa
+  triggers:
+    # One trigger per service — CEL filter matches changed paths on push to main
+    - name: triage-agent
+      interceptors:
+        - ref:
+            name: github
+            kind: ClusterInterceptor
+          params:
+            - name: secretRef
+              value:
+                secretName: github-webhook-secret
+                secretKey: secret
+            - name: eventTypes
+              value: [push]
+        - ref:
+            name: cel
+            kind: ClusterInterceptor
+          params:
+            - name: filter
+              # Only fire when services/triage-agent/** changed and target branch is main
+              value: >-
+                body.ref == 'refs/heads/main' &&
+                body.commits.exists(c,
+                  c.added.exists(f, f.startsWith('services/triage-agent/')) ||
+                  c.modified.exists(f, f.startsWith('services/triage-agent/')) ||
+                  c.removed.exists(f, f.startsWith('services/triage-agent/')))
+            - name: overlays
+              value:
+                - key: service-name
+                  expression: "'triage-agent'"
+      bindings:
+        - ref: github-push
+      template:
+        ref: service-ci
+
+    # Add additional service triggers below following the same pattern:
+    # - name: incident-api
+    #   interceptors: [... filter: body.ref == 'refs/heads/main' && services/incident-api/... ...]
+    #   bindings: [...]
+    #   template: { ref: service-ci }
