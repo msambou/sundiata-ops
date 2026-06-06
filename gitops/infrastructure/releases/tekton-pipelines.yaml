@@ -6,7 +6,7 @@ metadata:
 # Tekton Pipelines — installed via official release manifest fetched from GitHub
 # Check latest release: https://github.com/tektoncd/pipeline/releases
 # Update ref: tag to the latest stable release before applying
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
   name: tekton-pipelines
@@ -34,7 +34,7 @@ spec:
 ---
 # Tekton Triggers — installed via official release manifest
 # Check latest release: https://github.com/tektoncd/triggers/releases
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
   name: tekton-triggers
