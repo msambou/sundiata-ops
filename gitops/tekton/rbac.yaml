@@ -32,7 +32,7 @@ subjects:
     name: pipeline-runner
     namespace: tekton-ci
 ---
-# Allows the EventListener to create TriggerRuns in tekton-ci
+# Allows the EventListener to create TriggerRuns in tekton-ci and watch cluster-scoped resources
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -42,7 +42,16 @@ rules:
     resources: [events]
     verbs: [create, patch]
   - apiGroups: [triggers.tekton.dev]
-    resources: [eventlisteners, triggerbindings, triggertemplates, triggers, clusterinterceptors]
+    resources:
+      - eventlisteners
+      - triggerbindings
+      - triggertemplates
+      - triggers
+      - clusterinterceptors
+      - clustertriggerbindings   # cluster-scoped — must be in ClusterRole
+    verbs: [get, list, watch]
+  - apiGroups: [triggers.tekton.dev]
+    resources: [interceptors]    # namespace-scoped but granted here via ClusterRole
     verbs: [get, list, watch]
   - apiGroups: [tekton.dev]
     resources: [pipelineruns, pipelineresources, taskruns]
@@ -50,6 +59,9 @@ rules:
   - apiGroups: [""]
     resources: [serviceaccounts]
     verbs: [impersonate]
+  - apiGroups: [""]
+    resources: [secrets, configmaps]
+    verbs: [get, list, watch]
 ---
 apiVersion: v1
 kind: ServiceAccount
