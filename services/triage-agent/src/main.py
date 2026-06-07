@@ -25,7 +25,10 @@ logger = logging.getLogger(__name__)
 async def process_message(compiled_graph: Any, msg: Any) -> None:
     try:
         incident = IncidentCreated.model_validate_json(msg.data)
-        logger.info("received incident", extra={"incident_id": incident.id, "title": incident.title})
+        logger.info(
+            "received incident",
+            extra={"incident_id": incident.id, "title": incident.title},
+        )
         await run_triage_workflow(compiled_graph, incident)
         logger.info("incident triaged", extra={"incident_id": incident.id})
         await msg.ack()
