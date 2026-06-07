@@ -13,6 +13,8 @@ from .workflow import build_graph, run_triage_workflow
 
 NATS_URL = os.getenv("NATS_URL", "nats://nats-nats.nats.svc.cluster.local:4222")
 
+# Sample comment
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
